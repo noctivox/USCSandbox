@@ -1,6 +1,7 @@
 ﻿using AssetsTools.NET;
 using AssetsTools.NET.Extra;
 using USCSandbox.Processor;
+using USCSandbox.ShaderLab;
 using UnityVersion = AssetRipper.Primitives.UnityVersion;
 
 namespace USCSandbox
@@ -166,7 +167,10 @@ namespace USCSandbox
                 var shaderProcessor = new ShaderProcessor(shaderBf, ver.Value, platform);
                 shaderProcessor.Process();
 
-                string shaderText = shaderProcessor.Decompile();
+                var ast = shaderProcessor.BuildAst();
+                
+                var astWriter = new ShaderLabWriter(shaderProcessor.BlobManager, shaderProcessor.EngVer, platform);
+                var shaderText = astWriter.Write(ast);
 
                 Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "out", Path.GetDirectoryName(shaderName)!));
                 File.WriteAllText($"{Path.Combine(Environment.CurrentDirectory, "out", shaderName)}.shader", shaderText);

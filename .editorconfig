@@ -9,7 +9,7 @@ csharp_new_line_before_open_brace = anonymous_types,control_blocks,local_functio
 csharp_preferred_modifier_order = public, private, protected, internal, file, new, override, sealed, virtual, abstract, static, readonly, extern, unsafe, volatile, async, required:suggestion
 csharp_preserve_single_line_blocks = true
 csharp_space_after_cast = false
-csharp_style_namespace_declarations = block_scoped:suggestion
+csharp_style_namespace_declarations = file_scope:suggestion
 csharp_style_var_for_built_in_types = false:suggestion
 dotnet_sort_system_directives_first = false
 
