@@ -98,11 +98,11 @@ namespace USCSandbox.Processor
 
         public List<SerializedSubProgramInfo> GetVertexProgramForPlatform(GPUPlatform gpuPlatform)
         {
-            if (gpuPlatform == GPUPlatform.d3d11) 
+            if (gpuPlatform == GPUPlatform.d3d11)
             {
                 return SubProgramInfos
-                    .Where(spi => 
-                        spi.GpuProgramType is (int) ShaderGpuProgramType.DX11VertexSM40 or (int) ShaderGpuProgramType.DX11VertexSM50
+                    .Where(spi =>
+                        spi.GpuProgramType is (int)ShaderGpuProgramType.DX11VertexSM40 or (int)ShaderGpuProgramType.DX11VertexSM50
                     )
                     .ToList();
             }
@@ -114,8 +114,8 @@ namespace USCSandbox.Processor
             if (gpuPlatform == GPUPlatform.d3d11)
             {
                 return SubProgramInfos
-                    .Where(spi => 
-                        spi.GpuProgramType is (int) ShaderGpuProgramType.DX11PixelSM40 or (int) ShaderGpuProgramType.DX11PixelSM50
+                    .Where(spi =>
+                        spi.GpuProgramType is (int)ShaderGpuProgramType.DX11PixelSM40 or (int)ShaderGpuProgramType.DX11PixelSM50
                     )
                     .ToList();
             }

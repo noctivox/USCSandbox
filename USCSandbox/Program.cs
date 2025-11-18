@@ -167,7 +167,7 @@ namespace USCSandbox
                 shaderProcessor.Process();
 
                 string shaderText = shaderProcessor.Decompile();
-                
+
                 Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "out", Path.GetDirectoryName(shaderName)!));
                 File.WriteAllText($"{Path.Combine(Environment.CurrentDirectory, "out", shaderName)}.shader", shaderText);
                 Console.WriteLine($"{shaderName} decompiled");

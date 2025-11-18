@@ -85,7 +85,7 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Metadders
                                 cbParamIndex = (operandMaskAddress - paramCbStart) / paramCbElementSize;
                                 maskIndex -= 4 * cbParamIndex;
                             }
-                            
+
                             cbMasks.Add(maskIndex);
                         }
                     }

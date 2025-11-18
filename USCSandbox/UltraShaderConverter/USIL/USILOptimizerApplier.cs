@@ -17,20 +17,20 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL
         /// </remarks>
         private static readonly IUSILOptimizer[] OPTIMIZER_TYPES = new IUSILOptimizer[]
         {
-			// do metadders first
-			new USILCBufferMetadder(),
+            // do metadders first
+            new USILCBufferMetadder(),
             new USILSamplerMetadder(),
             new USILInputOutputMetadder(),
-			
-			// do fixes (you really should have these enabled!)
-			new USILSamplerTypeFixer(),
+
+            // do fixes (you really should have these enabled!)
+            new USILSamplerTypeFixer(),
             new USILGetDimensionsFixer(),
 
-			// do detection optimizers which usually depend on metadders
-			//new USILMatrixMulOptimizer(), // I don't trust this code so it's commented for now
-			
-			// do simplification optimizers last when detection has been finished
-			new USILCompareOrderOptimizer(),
+            // do detection optimizers which usually depend on metadders
+            //new USILMatrixMulOptimizer(), // I don't trust this code so it's commented for now
+
+            // do simplification optimizers last when detection has been finished
+            new USILCompareOrderOptimizer(),
             new USILAddNegativeOptimizer(),
             // new USILAndOptimizer(),
             // needs to be after AndOptimizer

@@ -270,7 +270,8 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL
                         }
                         break;
                     }
-                };
+                }
+                ;
             }
 
             if (!metadataNameAssigned || metadataNameWithArray)

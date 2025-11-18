@@ -154,7 +154,7 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                             {
                                 USILOperand iterRegOp = loopInfo.iterRegOp;
                                 bool matchesIter = op.registerIndex == iterRegOp.registerIndex &&
-                                    op.mask[0] == iterRegOp.mask[0];
+                                                   op.mask[0] == iterRegOp.mask[0];
 
                                 if (!matchesIter)
                                 {

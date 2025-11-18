@@ -46,7 +46,8 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
             {
                 // do detection
 
-                bool opcodesMatch = DoOpcodesMatch(insts, i, new[] {
+                bool opcodesMatch = DoOpcodesMatch(insts, i, new[]
+                {
                     USILInstructionType.Multiply,
                     USILInstructionType.MultiplyAdd,
                     USILInstructionType.MultiplyAdd,
@@ -67,15 +68,12 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                     inst0.srcOperands[1].operandType == USILOperandType.Matrix &&
                     inst0.srcOperands[1].arrayIndex == 1 &&
                     DoMasksMatch(inst0.srcOperands[1], XYZW_MASK) &&
-
                     inst1.srcOperands[0].operandType == USILOperandType.Matrix &&
                     inst1.srcOperands[0].arrayIndex == 0 &&
                     DoMasksMatch(inst1.srcOperands[0], XYZW_MASK) &&
-
                     inst2.srcOperands[0].operandType == USILOperandType.Matrix &&
                     inst2.srcOperands[0].arrayIndex == 2 &&
                     DoMasksMatch(inst2.srcOperands[0], XYZW_MASK) &&
-
                     inst3.srcOperands[1].operandType == USILOperandType.Matrix &&
                     inst3.srcOperands[1].arrayIndex == 3 &&
                     DoMasksMatch(inst3.srcOperands[1], XYZW_MASK);
@@ -102,7 +100,6 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                     inst1.destOperand.registerIndex == tmp0Index &&
                     inst1.srcOperands[2].registerIndex == tmp0Index &&
                     inst2.srcOperands[2].registerIndex == tmp0Index &&
-
                     inst2.destOperand.registerIndex == tmp1Index &&
                     inst3.srcOperands[0].registerIndex == tmp1Index;
 
@@ -117,10 +114,8 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                 bool inputsCorrect =
                     inst0.srcOperands[0].registerIndex == inpIndex &&
                     DoMasksMatch(inst0.srcOperands[0], YYYY_MASK) &&
-
                     inst1.srcOperands[1].registerIndex == inpIndex &&
                     DoMasksMatch(inst1.srcOperands[1], XXXX_MASK) &&
-
                     inst2.srcOperands[1].registerIndex == inpIndex &&
                     DoMasksMatch(inst2.srcOperands[1], ZZZZ_MASK);
 
@@ -175,7 +170,8 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
             {
                 // do detection
 
-                bool opcodesMatch = DoOpcodesMatch(insts, i, new[] {
+                bool opcodesMatch = DoOpcodesMatch(insts, i, new[]
+                {
                     USILInstructionType.Multiply,
                     USILInstructionType.MultiplyAdd,
                     USILInstructionType.MultiplyAdd,
@@ -196,15 +192,12 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                     inst0.srcOperands[1].operandType == USILOperandType.Matrix &&
                     inst0.srcOperands[1].arrayIndex == 1 &&
                     DoMasksMatch(inst0.srcOperands[1], XYZW_MASK) &&
-
                     inst1.srcOperands[0].operandType == USILOperandType.Matrix &&
                     inst1.srcOperands[0].arrayIndex == 0 &&
                     DoMasksMatch(inst1.srcOperands[0], XYZW_MASK) &&
-
                     inst2.srcOperands[0].operandType == USILOperandType.Matrix &&
                     inst2.srcOperands[0].arrayIndex == 2 &&
                     DoMasksMatch(inst2.srcOperands[0], XYZW_MASK) &&
-
                     inst3.srcOperands[0].operandType == USILOperandType.Matrix &&
                     inst3.srcOperands[0].arrayIndex == 3 &&
                     DoMasksMatch(inst3.srcOperands[0], XYZW_MASK);
@@ -229,13 +222,10 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                 int tmpIndex = inst0.destOperand.registerIndex;
                 bool tempRegisterCorrect =
                     inst0.destOperand.registerIndex == tmpIndex &&
-
                     inst1.destOperand.registerIndex == tmpIndex &&
                     inst1.srcOperands[2].registerIndex == tmpIndex &&
-
                     inst2.destOperand.registerIndex == tmpIndex &&
                     inst2.srcOperands[2].registerIndex == tmpIndex &&
-
                     inst3.srcOperands[2].registerIndex == tmpIndex;
 
                 if (!tempRegisterCorrect)
@@ -248,13 +238,10 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                 bool inputsCorrect =
                     inst0.srcOperands[0].registerIndex == inpIndex &&
                     DoMasksMatch(inst0.srcOperands[0], YYYY_MASK) &&
-
                     inst1.srcOperands[1].registerIndex == inpIndex &&
                     DoMasksMatch(inst1.srcOperands[1], XXXX_MASK) &&
-
                     inst2.srcOperands[1].registerIndex == inpIndex &&
                     DoMasksMatch(inst2.srcOperands[1], ZZZZ_MASK) &&
-
                     inst3.srcOperands[1].registerIndex == inpIndex &&
                     DoMasksMatch(inst3.srcOperands[1], WWWW_MASK);
 
@@ -298,7 +285,8 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
             {
                 // do detection
 
-                bool opcodesMatch = DoOpcodesMatch(insts, i, new[] {
+                bool opcodesMatch = DoOpcodesMatch(insts, i, new[]
+                {
                     USILInstructionType.Multiply,
                     USILInstructionType.MultiplyAdd,
                     USILInstructionType.MultiplyAdd,
@@ -319,15 +307,12 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                     inst0.srcOperands[1].operandType == USILOperandType.Matrix &&
                     inst0.srcOperands[1].arrayIndex == 1 &&
                     DoMasksMatch(inst0.srcOperands[1], XYZ_MASK) &&
-
                     inst1.srcOperands[0].operandType == USILOperandType.Matrix &&
                     inst1.srcOperands[0].arrayIndex == 0 &&
                     DoMasksMatch(inst1.srcOperands[0], XYZ_MASK) &&
-
                     inst2.srcOperands[0].operandType == USILOperandType.Matrix &&
                     inst2.srcOperands[0].arrayIndex == 2 &&
                     DoMasksMatch(inst2.srcOperands[0], XYZ_MASK) &&
-
                     inst3.srcOperands[1].operandType == USILOperandType.Matrix &&
                     inst3.srcOperands[1].arrayIndex == 3 &&
                     DoMasksMatch(inst3.srcOperands[1], XYZ_MASK);
@@ -354,7 +339,6 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                     inst1.destOperand.registerIndex == tmp0Index &&
                     inst1.srcOperands[2].registerIndex == tmp0Index &&
                     inst2.srcOperands[2].registerIndex == tmp0Index &&
-
                     inst2.destOperand.registerIndex == tmp1Index &&
                     inst3.srcOperands[0].registerIndex == tmp1Index;
 
@@ -369,10 +353,8 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Optimizer
                 bool inputsCorrect =
                     inst0.srcOperands[0].registerIndex == inpIndex &&
                     DoMasksMatch(inst0.srcOperands[0], YYY_MASK) &&
-
                     inst1.srcOperands[1].registerIndex == inpIndex &&
                     DoMasksMatch(inst1.srcOperands[1], XXX_MASK) &&
-
                     inst2.srcOperands[1].registerIndex == inpIndex &&
                     DoMasksMatch(inst2.srcOperands[1], ZZZ_MASK);
 

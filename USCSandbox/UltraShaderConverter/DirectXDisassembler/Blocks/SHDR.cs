@@ -621,7 +621,7 @@
                 }
                 case Opcode.dcl_maxout:
                 {
-                    maxOutputVertexCount = reader.ReadInt32();//?
+                    maxOutputVertexCount = reader.ReadInt32(); //?
                     break;
                 }
                 case Opcode.dcl_tessellator_paritioning:

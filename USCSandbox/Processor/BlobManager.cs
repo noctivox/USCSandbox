@@ -7,7 +7,7 @@ namespace USCSandbox.Processor
     {
         private List<AssetsFileReader> _readers;
         private UnityVersion _engVer;
-        
+
         public List<BlobEntry> Entries;
 
         public BlobManager(List<byte[]> blobs, UnityVersion engVer)

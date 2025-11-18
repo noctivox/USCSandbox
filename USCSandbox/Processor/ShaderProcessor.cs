@@ -25,7 +25,7 @@ namespace USCSandbox.Processor
             _platformId = platformId;
             _sb = new StringBuilderIndented();
         }
-        
+
         public void Process()
         {
             var platforms = _shaderBf["platforms.Array"].Select(i => i.AsInt).ToList();

@@ -25,7 +25,7 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.USIL.Metadders
                             texParam = shaderParams.TextureParameters.FirstOrDefault(
                                 p => p.SamplerIndex == -1
                             );
-                            
+
                             if (texParam == null)
                             {
                                 operand.operandType = USILOperandType.Sampler2D;
