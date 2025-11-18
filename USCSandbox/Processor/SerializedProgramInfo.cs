@@ -96,11 +96,30 @@ namespace USCSandbox.Processor
             return bindings;
         }
 
-        public List<SerializedSubProgramInfo> GetForPlatform(int gpuProgramType)
+        public List<SerializedSubProgramInfo> GetVertexProgramForPlatform(GPUPlatform gpuPlatform)
         {
-            return SubProgramInfos
-                .Where(spi => spi.GpuProgramType == gpuProgramType)
-                .ToList();
+            if (gpuPlatform == GPUPlatform.d3d11) 
+            {
+                return SubProgramInfos
+                    .Where(spi => 
+                        spi.GpuProgramType is (int) ShaderGpuProgramType.DX11VertexSM40 or (int) ShaderGpuProgramType.DX11VertexSM50
+                    )
+                    .ToList();
+            }
+            throw new NotSupportedException("Unsupported GPU platform");
+        }
+
+        public List<SerializedSubProgramInfo> GetFragmentProgramForPlatform(GPUPlatform gpuPlatform)
+        {
+            if (gpuPlatform == GPUPlatform.d3d11)
+            {
+                return SubProgramInfos
+                    .Where(spi => 
+                        spi.GpuProgramType is (int) ShaderGpuProgramType.DX11PixelSM40 or (int) ShaderGpuProgramType.DX11PixelSM50
+                    )
+                    .ToList();
+            }
+            throw new NotSupportedException("Unsupported GPU platform");
         }
     }
 }

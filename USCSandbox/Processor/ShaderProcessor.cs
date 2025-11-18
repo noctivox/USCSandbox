@@ -16,6 +16,7 @@ namespace USCSandbox.Processor
         private GPUPlatform _platformId;
         private UnityVersion _engVer;
         private StringBuilderIndented _sb;
+        private BlobManager _blobManager;
 
         public ShaderProcessor(AssetTypeValueField shaderBf, UnityVersion engVer, GPUPlatform platformId)
         {
@@ -24,58 +25,67 @@ namespace USCSandbox.Processor
             _platformId = platformId;
             _sb = new StringBuilderIndented();
         }
-
-        public string Process()
+        
+        public void Process()
         {
-            _sb.Clear();
-
-            var parsedForm = _shaderBf["m_ParsedForm"];
-            var name = parsedForm["m_Name"].AsString;
-            var keywordNames = parsedForm["m_KeywordNames.Array"].Select(i => i.AsString).ToList();
-
             var platforms = _shaderBf["platforms.Array"].Select(i => i.AsInt).ToList();
-            var offsets = _shaderBf["offsets.Array"];
-            var compressedLengths = _shaderBf["compressedLengths.Array"];
-            var decompressedLengths = _shaderBf["decompressedLengths.Array"];
+            var offsets = _shaderBf["offsets.Array"]
+                .Select(i => i["Array"]
+                    .Select(j => j.AsUInt)
+                    .ToList()
+                )
+                .ToList();
+            var compressedLengths = _shaderBf["compressedLengths.Array"]
+                .Select(i => i["Array"]
+                    .Select(j => j.AsUInt)
+                    .ToList()
+                )
+                .ToList();
+            var decompressedLengths = _shaderBf["decompressedLengths.Array"]
+                .Select(i => i["Array"]
+                    .Select(j => j.AsUInt)
+                    .ToList()
+                )
+                .ToList();
             var compressedBlob = _shaderBf["compressedBlob.Array"].AsByteArray;
 
+
             var selectedIndex = platforms.IndexOf((int)_platformId);
-            
-            uint selectedOffset;
-            if (offsets[selectedIndex].Children.Count > 0)
-                selectedOffset = offsets[selectedIndex]["Array"][0].AsUInt;
-            else
-                selectedOffset = offsets[selectedIndex].AsUInt;
-            
-            uint selectedCompressedLength;
-            if (compressedLengths[selectedIndex].Children.Count > 0)
-                selectedCompressedLength = compressedLengths[selectedIndex]["Array"][0].AsUInt;
-            else
-                selectedCompressedLength = compressedLengths[selectedIndex].AsUInt;
-            
-            uint selectedDecompressedLength;
-            if (offsets[selectedIndex].Children.Count > 0)
-                selectedDecompressedLength = decompressedLengths[selectedIndex]["Array"][0].AsUInt;
-            else
-                selectedDecompressedLength = decompressedLengths[selectedIndex].AsUInt;
+            var selectedOffsets = offsets[selectedIndex];
+            var selectedCompressedLength = compressedLengths[selectedIndex];
+            var selectedDecompressedLength = decompressedLengths[selectedIndex];
 
-            var decompressedBlob = new byte[selectedDecompressedLength];
-            var lz4Decoder = new Lz4DecoderStream(new MemoryStream(compressedBlob));
-            lz4Decoder.Read(decompressedBlob, 0, (int)selectedDecompressedLength);
-            lz4Decoder.Dispose();
-
-            var blobManager = new BlobManager(decompressedBlob, _engVer);
-            for (var i = 0; i < blobManager.Entries.Count; i++)
+            using var ms = new MemoryStream(compressedBlob);
+            var blobs = new List<byte[]>();
+            for (int i = 0; i < selectedOffsets.Count; i++)
             {
-                var entryBytes = blobManager.GetRawEntry(i);
-                File.WriteAllBytes($"dbg_entry_{i}.bin", entryBytes);
+                var decompressedBlob = new byte[selectedDecompressedLength[i]];
+                var lz4Decoder = new Lz4DecoderStream(ms);
+                ms.Seek((int)selectedOffsets[i], SeekOrigin.Begin);
+                lz4Decoder.Read(decompressedBlob, 0, (int)selectedDecompressedLength[i]);
+                blobs.Add(decompressedBlob);
+                lz4Decoder.Dispose();
             }
+
+            _blobManager = new BlobManager(blobs, _engVer);
+            for (var i = 0; i < _blobManager.Entries.Count; i++)
+            {
+                var entryBytes = _blobManager.GetRawEntry(i);
+            }
+        }
+
+        public string Decompile()
+        {
+            var parsedForm = _shaderBf["m_ParsedForm"];
+            var name = parsedForm["m_Name"].AsString;
+
+            _sb.Clear();
 
             _sb.AppendLine($"Shader \"{name}\" {{");
             _sb.Indent();
             {
                 WriteProperties(parsedForm["m_PropInfo"]);
-                WriteSubShaders(blobManager, parsedForm);
+                WriteSubShaders(_blobManager, parsedForm);
                 if (!string.IsNullOrEmpty(parsedForm["m_FallbackName"].AsString))
                     _sb.AppendLine($"Fallback \"{parsedForm["m_FallbackName"].AsString}\"");
             }
@@ -94,28 +104,39 @@ namespace USCSandbox.Processor
 
             var defineSb = new StringBuilder();
             var passSb = new StringBuilder();
-            
+
             defineSb.AppendLine(new string(' ', depth * 4));
             passSb.AppendLine(new string(' ', depth * 4));
             var basketsInfo = baskets
-                .Select(x => 
-                new 
-                {
-                    progInfo = x.ProgramInfo,
-                    subProgInfo = x.SubProgramInfo,
-                    index = x.ParameterBlobIndex,
-                    subProg = blobManager.GetShaderSubProgram((int)x.SubProgramInfo.BlobIndex)
+                .Select(x => {
+                    try
+                    {
+                        var basket = new
+                        {
+                            progInfo = x.ProgramInfo,
+                            subProgInfo = x.SubProgramInfo,
+                            index = x.ParameterBlobIndex,
+                            subProg = blobManager.GetShaderSubProgram((int)x.SubProgramInfo.BlobIndex)
+                        };
+                        return basket;
+                    } catch (Exception e)
+                    {
+                        Console.WriteLine($"Error when parsing shader sub program {x.SubProgramInfo.BlobIndex}: {e}");
+                    }
+
+                    return null;
                 })
+                .Where(x => x != null)
                 .OrderBy(x => x.subProg.GetProgramType(_engVer))
                 .ThenByDescending(x => x.subProg.GlobalKeywords.Concat(x.subProg.LocalKeywords).Count())
                 .ToList();
 
             var subPrograms = basketsInfo.Select(x => x.subProg).ToList();
-            ShaderGpuProgramType[] vertTypes = [ShaderGpuProgramType.DX11VertexSM40, ShaderGpuProgramType.ConsoleVS];
-            ShaderGpuProgramType[] fragTypes = [ShaderGpuProgramType.DX11PixelSM40, ShaderGpuProgramType.ConsoleFS];
+            ShaderGpuProgramType[] vertTypes = [ShaderGpuProgramType.DX11VertexSM40, ShaderGpuProgramType.DX11VertexSM50, ShaderGpuProgramType.ConsoleVS];
+            ShaderGpuProgramType[] fragTypes = [ShaderGpuProgramType.DX11PixelSM40, ShaderGpuProgramType.DX11PixelSM50, ShaderGpuProgramType.ConsoleFS];
             var firstVert = subPrograms.FirstOrDefault(x => vertTypes.Contains(x.GetProgramType(_engVer)));
             var firstFrag = subPrograms.FirstOrDefault(x => fragTypes.Contains(x.GetProgramType(_engVer)));
-            
+
             if (firstVert is not null)
             {
                 defineSb.Append(new string(' ', depth * 4));
@@ -134,7 +155,7 @@ namespace USCSandbox.Processor
             HashSet<string> allUniqueKeywords = allKeywordsCombinations.SelectMany(x => x).ToHashSet();
             int leastKeywordsAmount = allKeywordsCombinations.Min(x => x.Count());
             List<string> mandatoryKeywords = [];
-            
+
             List<string> optionalKeywords = new List<string>();
             foreach (string keyword in allUniqueKeywords)
             {
@@ -162,7 +183,7 @@ namespace USCSandbox.Processor
                     var multiCompileKeywords = leastAmountCombinations
                         .Select(x => x[multiCompileKeywordIndex])
                         .ToHashSet();
-                
+
                     defineSb.Append(new string(' ', depth * 4));
                     defineSb.AppendLine($"#pragma multi_compile {string.Join(" ", multiCompileKeywords)}");
                     optionalKeywords = optionalKeywords.Except(multiCompileKeywords).ToList();
@@ -175,21 +196,21 @@ namespace USCSandbox.Processor
                 defineSb.Append(new string(' ', depth * 4));
                 defineSb.AppendLine($"#pragma shader_feature {keyword}");
             }
-            
+
             bool encounterdVert = false;
             bool encounterdFrag = false;
-            
+
             var declaredCBufs = subPrograms
                 .Select(x => String.Join("-", x.GlobalKeywords.Concat(x.LocalKeywords).Order()))
                 .Distinct()
                 .ToDictionary(x => x, _ => new HashSet<string>());
-            
+
             var lastVertext = basketsInfo.LastOrDefault(x => vertTypes.Contains(x.subProg.GetProgramType(_engVer)));
             var lastFragment = basketsInfo.LastOrDefault(x => fragTypes.Contains(x.subProg.GetProgramType(_engVer)));
 
             bool noVertexVariants = subPrograms.Count(x => vertTypes.Contains(x.GetProgramType(_engVer))) <= 1;
             bool noFragmentVariants = subPrograms.Count(x => fragTypes.Contains(x.GetProgramType(_engVer))) <= 1;
-            
+
             foreach (var basket in basketsInfo)
             {
                 var structSb = new StringBuilder();
@@ -197,13 +218,13 @@ namespace USCSandbox.Processor
                 var texSb = new StringBuilder();
                 var memeSb = new StringBuilder();
                 var codeSb = new StringBuilder();
-                
+
                 var progInfo = basket.progInfo;
                 var subProgInfo = basket.subProgInfo;
                 var index = basket.index;
 
                 var subProg = blobManager.GetShaderSubProgram((int)subProgInfo.BlobIndex);
-                File.WriteAllBytes($"dbg_entry_data_{subProgInfo.BlobIndex}.bin", subProg.ProgramData);
+                // File.WriteAllBytes($"dbg_entry_data_{subProgInfo.BlobIndex}.bin", subProg.ProgramData);
 
                 ShaderParams param;
                 if (index != -1)
@@ -214,7 +235,7 @@ namespace USCSandbox.Processor
                 {
                     param = subProg.ShaderParams;
                 }
-                
+
                 param.CombineCommon(progInfo);
 
                 var programType = subProg.GetProgramType(_engVer);
@@ -229,14 +250,20 @@ namespace USCSandbox.Processor
                     structSb.Append("#else");
                 }
                 else if ((!noVertexVariants && programType == ShaderGpuProgramType.DX11VertexSM40)
-                        || (!noFragmentVariants && programType == ShaderGpuProgramType.DX11PixelSM40))
+                         || (!noFragmentVariants && programType == ShaderGpuProgramType.DX11PixelSM40)
+                         || (!noVertexVariants && programType == ShaderGpuProgramType.DX11VertexSM50)
+                         || (!noFragmentVariants && programType == ShaderGpuProgramType.DX11PixelSM50)
+                )
                 {
                     string preprocessorDirective;
                     if ((!encounterdVert && programType == ShaderGpuProgramType.DX11VertexSM40)
-                        || (!encounterdFrag && programType == ShaderGpuProgramType.DX11PixelSM40))
+                        || (!encounterdFrag && programType == ShaderGpuProgramType.DX11PixelSM40)
+                        || (!noVertexVariants && programType == ShaderGpuProgramType.DX11VertexSM50)
+                        || (!noFragmentVariants && programType == ShaderGpuProgramType.DX11PixelSM50)
+                    )
                     {
                         preprocessorDirective = "if";
-                        if (programType == ShaderGpuProgramType.DX11VertexSM40)
+                        if (programType is ShaderGpuProgramType.DX11VertexSM40 or ShaderGpuProgramType.DX11VertexSM50)
                         {
                             encounterdVert = true;
                         }
@@ -252,15 +279,15 @@ namespace USCSandbox.Processor
                     {
                         preprocessorDirective = "elif";
                     }
-                
+
                     structSb.AppendLine();
                     structSb.Append(new string(' ', depth * 4));
                     structSb.Append($"#{preprocessorDirective} {string.Join(" && ", keywords)}");
                 }
-                
+
                 cbufferSb.Append(new string(' ', depth * 4));
                 cbufferSb.AppendLine($"// CBs for {programType}");
-                
+
                 foreach (ConstantBuffer cbuffer in param.ConstantBuffers)
                 {
                     cbufferSb.Append(WritePassCBuffer(param, declaredCBufs[string.Join("-", keywords)], cbuffer, depth));
@@ -270,11 +297,13 @@ namespace USCSandbox.Processor
                 texSb.AppendLine($"// Textures for {programType}");
 
                 texSb.Append(WritePassTextures(param, declaredCBufs[string.Join("-", keywords)], depth));
-                
+
                 switch (programType)
                 {
                     case ShaderGpuProgramType.DX11VertexSM40:
                     case ShaderGpuProgramType.DX11PixelSM40:
+                    case ShaderGpuProgramType.DX11VertexSM50:
+                    case ShaderGpuProgramType.DX11PixelSM50:
                     {
                         var conv = new USCShaderConverter();
                         conv.LoadDirectXCompiledShader(new MemoryStream(subProg.ProgramData), graphicApi, _engVer);
@@ -282,10 +311,10 @@ namespace USCSandbox.Processor
                         conv.ApplyMetadataToProgram(subProg, param, _engVer);
 
                         UShaderFunctionToHLSL hlslConverter = new UShaderFunctionToHLSL(conv.ShaderProgram!, depth);
-                        
+
                         structSb.AppendLine();
                         codeSb.AppendLine();
-                        
+
                         structSb.Append(hlslConverter.WriteStruct());
                         structSb.AppendLine();
                         codeSb.Append(hlslConverter.WriteFunction());
@@ -350,7 +379,7 @@ namespace USCSandbox.Processor
                 int cbufferIndex = shaderParams.ConstantBuffers.IndexOf(cbuffer);
 
                 bool wroteCbufferHeaderYet = false;
-                
+
                 char[] chars = new char[] { 'x', 'y', 'z', 'w' };
                 List<ConstantBufferParameter> allParams = cbuffer.CBParams;
                 foreach (ConstantBufferParameter param in allParams)
@@ -363,7 +392,7 @@ namespace USCSandbox.Processor
                     {
                         continue;
                     }
-                    
+
                     if (!wroteCbufferHeaderYet && nonGlobalCbuffer)
                     {
                         sb.Append(new string(' ', depth * 4)); // todo: new stringbuilder
@@ -505,10 +534,10 @@ namespace USCSandbox.Processor
                 var value = type switch
                 {
                     SerializedPropertyType.Color or
-                    SerializedPropertyType.Vector => $"({defValues[0]}, {defValues[1]}, {defValues[2]}, {defValues[3]})",
+                        SerializedPropertyType.Vector => $"({defValues[0]}, {defValues[1]}, {defValues[2]}, {defValues[3]})",
                     SerializedPropertyType.Float or
-                    SerializedPropertyType.Range or
-                    SerializedPropertyType.Int => defValues[0],
+                        SerializedPropertyType.Range or
+                        SerializedPropertyType.Int => defValues[0],
                     SerializedPropertyType.Texture => $"\"{defTextureName}\" {{}}",
                     _ => throw new NotSupportedException("Bad property type")
                 };
@@ -566,7 +595,7 @@ namespace USCSandbox.Processor
                     _sb.AppendLine($"UsePass \"{usePassName}\"");
                     continue;
                 }
-                
+
                 _sb.AppendLine("Pass {");
                 _sb.Indent();
                 {
@@ -578,9 +607,9 @@ namespace USCSandbox.Processor
                     var vertInfo = new SerializedProgramInfo(pass["progVertex"], nameTable);
                     var fragInfo = new SerializedProgramInfo(pass["progFragment"], nameTable);
 
-                    var vertProgInfos = vertInfo.GetForPlatform((int)GetVertexProgramForPlatform(_platformId));
-                    var fragProgInfos = fragInfo.GetForPlatform((int)GetFragmentProgramForPlatform(_platformId));
-                    
+                    var vertProgInfos = vertInfo.GetVertexProgramForPlatform(_platformId);
+                    var fragProgInfos = fragInfo.GetFragmentProgramForPlatform(_platformId);
+
                     // we should hopefully only have one of each type, but just in case...
                     // todo: cleanup
                     List<ShaderProgramBasket> baskets = [];
@@ -657,7 +686,7 @@ namespace USCSandbox.Processor
             var fogStart = state["fogStart.val"].AsFloat;
             var fogEnd = state["fogEnd.val"].AsFloat;
 
-            
+
             var lighting = state["lighting"].AsBool;
 
             if (alphaToMask > 0f)
@@ -684,88 +713,88 @@ namespace USCSandbox.Processor
             {
                 _sb.AppendLine($"Offset {offsetFactor}, {offsetUnits}");
             }
-            
+
             if (stencilRef != 0.0 || stencilReadMask != 255.0 || stencilWriteMask != 255.0
                 || !(stencilOpPass == StencilOp.Keep && stencilOpFail == StencilOp.Keep && stencilOpZfail == StencilOp.Keep && stencilOpComp == StencilComp.Always)
                 || !(stencilOpFrontPass == StencilOp.Keep && stencilOpFrontFail == StencilOp.Keep && stencilOpFrontZfail == StencilOp.Keep && stencilOpFrontComp == StencilComp.Always)
                 || !(stencilOpBackPass == StencilOp.Keep && stencilOpBackFail == StencilOp.Keep && stencilOpBackZfail == StencilOp.Keep && stencilOpBackComp == StencilComp.Always))
-			{
-				_sb.AppendLine("Stencil {");
+            {
+                _sb.AppendLine("Stencil {");
                 _sb.Indent();
-				if (stencilRef != 0.0)
-				{
+                if (stencilRef != 0.0)
+                {
                     _sb.AppendLine($"Ref {stencilRef}");
-				}
-				if (stencilReadMask != 255.0)
-				{
+                }
+                if (stencilReadMask != 255.0)
+                {
                     _sb.AppendLine($"ReadMask {stencilReadMask}");
-				}
-				if (stencilWriteMask != 255.0)
-				{
+                }
+                if (stencilWriteMask != 255.0)
+                {
                     _sb.AppendLine($"WriteMask {stencilWriteMask}");
-				}
-				if (stencilOpPass != StencilOp.Keep
+                }
+                if (stencilOpPass != StencilOp.Keep
                     || stencilOpFail != StencilOp.Keep
                     || stencilOpZfail != StencilOp.Keep
                     || (stencilOpComp != StencilComp.Always && stencilOpComp != StencilComp.Disabled))
-				{
+                {
                     _sb.AppendLine($"Comp {stencilOpComp}");
                     _sb.AppendLine($"Pass {stencilOpPass}");
                     _sb.AppendLine($"Fail {stencilOpFail}");
                     _sb.AppendLine($"ZFail {stencilOpZfail}");
-				}
-				if (stencilOpFrontPass != StencilOp.Keep
+                }
+                if (stencilOpFrontPass != StencilOp.Keep
                     || stencilOpFrontFail != StencilOp.Keep
                     || stencilOpFrontZfail != StencilOp.Keep
                     || (stencilOpFrontComp != StencilComp.Always && stencilOpFrontComp != StencilComp.Disabled))
-				{
+                {
                     _sb.AppendLine($"CompFront {stencilOpFrontComp}");
                     _sb.AppendLine($"PassFront {stencilOpFrontPass}");
                     _sb.AppendLine($"FailFront {stencilOpFrontFail}");
                     _sb.AppendLine($"ZFailFront {stencilOpFrontZfail}");
-				}
-				if (stencilOpBackPass != StencilOp.Keep
+                }
+                if (stencilOpBackPass != StencilOp.Keep
                     || stencilOpBackFail != StencilOp.Keep
                     || stencilOpBackZfail != StencilOp.Keep
                     || (stencilOpBackComp != StencilComp.Always && stencilOpBackComp != StencilComp.Disabled))
-				{
+                {
                     _sb.AppendLine($"CompBack {stencilOpBackComp}");
                     _sb.AppendLine($"PassBack {stencilOpBackPass}");
                     _sb.AppendLine($"FailBack {stencilOpBackFail}");
                     _sb.AppendLine($"ZFailBack {stencilOpBackZfail}");
-				}
-				_sb.Unindent();
-				_sb.AppendLine("}");
-			}
+                }
+                _sb.Unindent();
+                _sb.AppendLine("}");
+            }
 
-			if (fogMode != FogMode.Unknown || fogDensity != 0.0 || fogStart != 0.0 || fogEnd != 0.0
+            if (fogMode != FogMode.Unknown || fogDensity != 0.0 || fogStart != 0.0 || fogEnd != 0.0
                 || !(fogColorX == 0.0 && fogColorY == 0.0 && fogColorZ == 0.0 && fogColorW == 0.0))
-			{
+            {
                 _sb.AppendLine("Fog {");
                 _sb.Indent();
-				if (fogMode != FogMode.Unknown)
-				{
+                if (fogMode != FogMode.Unknown)
+                {
                     _sb.AppendLine($"Mode {fogMode}");
-				}
-				if (fogColorX != 0.0 || fogColorY != 0.0 || fogColorZ != 0.0 || fogColorW != 0.0)
-				{
+                }
+                if (fogColorX != 0.0 || fogColorY != 0.0 || fogColorZ != 0.0 || fogColorW != 0.0)
+                {
                     _sb.AppendLine($"Color ({fogColorX.ToString(CultureInfo.InvariantCulture)}," +
                                    $"{fogColorY.ToString(CultureInfo.InvariantCulture)}," +
                                    $"{fogColorZ.ToString(CultureInfo.InvariantCulture)}," +
                                    $"{fogColorW.ToString(CultureInfo.InvariantCulture)})");
-				}
-				if (fogDensity != 0.0)
-				{
+                }
+                if (fogDensity != 0.0)
+                {
                     _sb.AppendLine($"Density {fogDensity.ToString(CultureInfo.InvariantCulture)}");
-				}
-				if (fogStart != 0.0 || fogEnd != 0.0)
-				{
+                }
+                if (fogStart != 0.0 || fogEnd != 0.0)
+                {
                     _sb.AppendLine($"Range {fogStart.ToString(CultureInfo.InvariantCulture)}, " +
                                    $"{fogEnd.ToString(CultureInfo.InvariantCulture)}");
-				}
+                }
                 _sb.Unindent();
                 _sb.AppendLine("}");
-			}
+            }
 
             if (lighting)
             {

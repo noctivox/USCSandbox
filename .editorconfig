@@ -1,0 +1,53 @@
+
+[*]
+
+# Microsoft .NET properties
+csharp_indent_braces = false
+csharp_new_line_before_else = true
+csharp_new_line_before_members_in_object_initializers = false
+csharp_new_line_before_open_brace = anonymous_types,control_blocks,local_functions,methods,object_collection_array_initializers,types
+csharp_preferred_modifier_order = public, private, protected, internal, file, new, override, sealed, virtual, abstract, static, readonly, extern, unsafe, volatile, async, required:suggestion
+csharp_preserve_single_line_blocks = true
+csharp_space_after_cast = false
+csharp_style_namespace_declarations = block_scoped:suggestion
+csharp_style_var_for_built_in_types = false:suggestion
+dotnet_sort_system_directives_first = false
+
+# ReSharper properties
+resharper_align_multiline_expression = true
+resharper_align_multiline_statement_conditions = false
+resharper_blank_lines_after_block_statements = 0
+resharper_blank_lines_after_control_transfer_statements = 1
+resharper_blank_lines_around_single_line_type = 0
+resharper_braces_for_ifelse = not_required
+resharper_braces_redundant = false
+resharper_csharp_blank_lines_around_field = 0
+resharper_csharp_blank_lines_around_invocable = 0
+resharper_csharp_blank_lines_around_type = 0
+resharper_csharp_insert_final_newline = true
+resharper_csharp_keep_blank_lines_in_code = 100
+resharper_csharp_keep_existing_enum_arrangement = false
+resharper_csharp_max_line_length = 255
+resharper_csharp_remove_blank_lines_near_braces_in_code = false
+resharper_for_other_types = use_var_when_evident
+resharper_for_simple_types = use_explicit_type
+resharper_indent_preprocessor_other = do_not_change
+resharper_instance_members_qualify_declared_in = base_class
+resharper_keep_existing_declaration_block_arrangement = false
+resharper_object_creation_when_type_evident = explicitly_typed
+resharper_object_creation_when_type_not_evident = explicitly_typed
+resharper_parentheses_non_obvious_operations = none, bitwise_and, bitwise_exclusive_or, bitwise_inclusive_or, bitwise
+resharper_parentheses_redundancy_style = remove
+resharper_place_expr_method_on_single_line = true
+resharper_place_expr_property_on_single_line = true
+resharper_place_simple_embedded_statement_on_same_line = false
+resharper_place_simple_initializer_on_single_line = false
+resharper_place_single_method_argument_lambda_on_same_line = false
+resharper_space_within_empty_braces = false
+resharper_space_within_single_line_array_initializer_braces = true
+resharper_trailing_comma_in_multiline_lists = false
+resharper_use_roslyn_logic_for_evident_types = true
+resharper_wrap_array_initializer_style = chop_if_long
+resharper_wrap_before_binary_pattern_op = false
+resharper_wrap_chained_binary_patterns = chop_if_long
+resharper_wrap_object_and_collection_initializer_style = chop_always
