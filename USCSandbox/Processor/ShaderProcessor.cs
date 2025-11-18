@@ -11,7 +11,7 @@ using USCSandbox.ShaderLab;
 
 namespace USCSandbox.Processor;
 
-internal class ShaderProcessor
+public class ShaderProcessor
 {
     public GPUPlatform PlatformId;
     public UnityVersion EngVer;
