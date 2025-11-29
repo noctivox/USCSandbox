@@ -48,7 +48,9 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.UShader.Functi
                 { USILInstructionType.Round, new InstHandler(HandleRound) },
                 { USILInstructionType.Truncate, new InstHandler(HandleTruncate) },
                 { USILInstructionType.IntToFloat, new InstHandler(HandleIntToFloat) },
+                { USILInstructionType.UIntToFloat, new InstHandler(HandleIntToFloat) },
                 { USILInstructionType.FloatToInt, new InstHandler(HandleFloatToInt) },
+                { USILInstructionType.FloatToUInt, new InstHandler(HandleFloatToUInt) },
                 { USILInstructionType.Sine, new InstHandler(HandleSine) },
                 { USILInstructionType.Cosine, new InstHandler(HandleCosine) },
                 { USILInstructionType.ShiftLeft, new InstHandler(HandleShiftLeft) },
@@ -60,6 +62,7 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.UShader.Functi
                 { USILInstructionType.SampleComparison, new InstHandler(HandleSample) },
                 { USILInstructionType.SampleComparisonLODZero, new InstHandler(HandleSample) },
                 { USILInstructionType.SampleLOD, new InstHandler(HandleSampleLOD) },
+                { USILInstructionType.SampleLODBias, new InstHandler(HandleSampleLODBias) },
                 { USILInstructionType.SampleDerivative, new InstHandler(HandleSampleDerivative) },
                 { USILInstructionType.LoadResource, new InstHandler(HandleLoadResource) },
                 { USILInstructionType.LoadResourceMultisampled, new InstHandler(HandleLoadResource) },
@@ -154,6 +157,10 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.UShader.Functi
                     if (_instructionHandlers.ContainsKey(inst.instructionType))
                     {
                         _instructionHandlers[inst.instructionType](inst);
+                    }
+                    else
+                    {
+                        AppendLine($"// Unsupported instruction: {inst.ToString()}");
                     }
                 }
             }
@@ -405,15 +412,23 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.UShader.Functi
         private void HandleIntToFloat(USILInstruction inst)
         {
             List<USILOperand> srcOps = inst.srcOperands;
-            string value = $"floor({srcOps[0]})";
+            string value = $"(float){srcOps[0]}";
             string comment = CommentString(inst);
             AppendLine($"{comment}{inst.destOperand} = {value};");
         }
-
+        
         private void HandleFloatToInt(USILInstruction inst)
         {
             List<USILOperand> srcOps = inst.srcOperands;
             string value = $"asint({srcOps[0]})";
+            string comment = CommentString(inst);
+            AppendLine($"{comment}{inst.destOperand} = {value};");
+        }
+
+        private void HandleFloatToUInt(USILInstruction inst)
+        {
+            List<USILOperand> srcOps = inst.srcOperands;
+            string value = $"asuint({srcOps[0]})";
             string comment = CommentString(inst);
             AppendLine($"{comment}{inst.destOperand} = {value};");
         }
@@ -549,6 +564,27 @@ namespace AssetRipper.Export.Modules.Shaders.UltraShaderConverter.UShader.Functi
             AppendLine($"{comment}{inst.destOperand} = {value};");
         }
 
+        private void HandleSampleLODBias(USILInstruction inst)
+        {
+            var srcOps = inst.srcOperands;
+            var addrOperand = srcOps[0];
+            var textureOperand = srcOps[1];
+            var samplerOperand = srcOps[2];
+            var biasOperand = srcOps[3];
+            var args = $"{textureOperand}, {samplerOperand}, {addrOperand}, {biasOperand})";
+            var value = samplerOperand.operandType switch
+            {
+                USILOperandType.Sampler2D => $"SAMPLE_TEXTURE2D_BIAS({args})",
+                USILOperandType.Sampler3D => $"SAMPLE_TEXTURE3D_BIAS({args})",
+                USILOperandType.SamplerCube => $"SAMPLE_TEXTURECUBE_BIAS({args})",
+                USILOperandType.Sampler2DArray => $"SAMPLE_TEXTURE2D_ARRAY_BIAS({args})",
+                USILOperandType.SamplerCubeArray => $"SAMPLE_TEXTURECUBE_ARRAY_BIAS({args})",
+                _ => $"texND({args})" // unknown real type
+            };
+            string comment = CommentString(inst);
+            AppendLine($"{comment}{inst.destOperand} = {value};");
+        }
+        
         private void HandleSampleLOD(USILInstruction inst)
         {
             List<USILOperand> srcOps = inst.srcOperands;
